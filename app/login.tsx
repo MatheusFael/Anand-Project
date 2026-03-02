@@ -4,13 +4,15 @@ import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MOCK_ACCOUNTS } from '@/constants/mock-accounts';
-import { setLoggedUser } from '@/constants/mock-session';
+import { clearViewedPatient, setLoggedUser, setViewedPatient } from '@/constants/mock-session';
 
 export default function LoginScreen() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const professionalAccount = MOCK_ACCOUNTS.find((item) => item.type === 'profissional');
+    const samplePatient = MOCK_ACCOUNTS.find((item) => item.type === 'paciente');
 
     const handleLogin = () => {
         const normalizedEmail = email.trim().toLowerCase();
@@ -26,6 +28,18 @@ export default function LoginScreen() {
 
         setErrorMessage('');
         setLoggedUser({
+            name: account.name,
+            email: account.email,
+            type: account.type,
+        });
+
+        if (account.type === 'profissional') {
+            clearViewedPatient();
+            router.replace('/profissional');
+            return;
+        }
+
+        setViewedPatient({
             name: account.name,
             email: account.email,
             type: account.type,
@@ -74,13 +88,21 @@ export default function LoginScreen() {
 
                 <View style={styles.testAccountsCard}>
                     <Text style={styles.testAccountsTitle}>Contas de teste</Text>
-                    {MOCK_ACCOUNTS.map((account) => (
-                        <View key={account.email} style={styles.testAccountItem}>
-                            <Text style={styles.testAccountType}>{account.type.toUpperCase()}</Text>
-                            <Text style={styles.testAccountText}>E-mail: {account.email}</Text>
-                            <Text style={styles.testAccountText}>Senha: {account.password}</Text>
+                    {professionalAccount ? (
+                        <View style={styles.testAccountItem}>
+                            <Text style={styles.testAccountType}>PROFISSIONAL</Text>
+                            <Text style={styles.testAccountText}>E-mail: {professionalAccount.email}</Text>
+                            <Text style={styles.testAccountText}>Senha: {professionalAccount.password}</Text>
                         </View>
-                    ))}
+                    ) : null}
+
+                    {samplePatient ? (
+                        <View style={styles.testAccountItem}>
+                            <Text style={styles.testAccountType}>PACIENTE (EXEMPLO)</Text>
+                            <Text style={styles.testAccountText}>E-mail: {samplePatient.email}</Text>
+                            <Text style={styles.testAccountText}>Senha: {samplePatient.password}</Text>
+                        </View>
+                    ) : null}
                 </View>
 
                 <View style={styles.footerRow}>

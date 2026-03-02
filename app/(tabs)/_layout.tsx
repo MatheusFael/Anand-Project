@@ -1,14 +1,34 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
+import { useEffect } from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { getLoggedUser, getViewedPatient } from '@/constants/mock-session';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'dark'];
+  const loggedUser = getLoggedUser();
+  const viewedPatient = getViewedPatient();
+
+  useEffect(() => {
+    if (!loggedUser) {
+      router.replace('/login');
+      return;
+    }
+
+    if (loggedUser.type === 'profissional' && !viewedPatient) {
+      router.replace('/profissional');
+    }
+  }, [loggedUser, viewedPatient, router]);
+
+  if (!loggedUser || (loggedUser.type === 'profissional' && !viewedPatient)) {
+    return null;
+  }
 
   return (
     <Tabs

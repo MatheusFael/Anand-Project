@@ -2,13 +2,19 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { clearLoggedUser, getLoggedUser } from '@/constants/mock-session';
+import { clearLoggedUser, clearViewedPatient, getLoggedUser } from '@/constants/mock-session';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const user = getLoggedUser();
+  const isProfessional = user?.type === 'profissional';
   const accountTypeLabel =
     user?.type === 'profissional' ? 'Profissional' : user?.type === 'paciente' ? 'Paciente' : 'Não identificado';
+
+  const handleBackToPatients = () => {
+    clearViewedPatient();
+    router.replace('/profissional');
+  };
 
   const handleLogout = () => {
     clearLoggedUser();
@@ -45,6 +51,12 @@ export default function ProfileScreen() {
           <Text style={styles.label}>Tipo de conta</Text>
           <Text style={styles.value}>{accountTypeLabel}</Text>
         </View>
+
+        {isProfessional ? (
+          <TouchableOpacity style={styles.backButton} onPress={handleBackToPatients} activeOpacity={0.85}>
+            <Text style={styles.backButtonText}>Voltar para lista de pacientes</Text>
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.85}>
           <Text style={styles.logoutButtonText}>Sair da conta</Text>
@@ -94,8 +106,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  backButton: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1e584f',
+    backgroundColor: '#072923',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+  },
+  backButtonText: {
+    color: '#88b6ac',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   logoutButton: {
-    marginTop: 'auto',
+    marginTop: 2,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#7b2335',

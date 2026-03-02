@@ -1,9 +1,36 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { clearViewedPatient, getLoggedUser, getViewedPatient } from '@/constants/mock-session';
+
 export default function HomeScreen() {
+  const router = useRouter();
+  const loggedUser = getLoggedUser();
+  const viewedPatient = getViewedPatient();
+  const isProfessional = loggedUser?.type === 'profissional';
+
+  useEffect(() => {
+    if (!loggedUser) {
+      router.replace('/login');
+      return;
+    }
+
+    if (loggedUser.type === 'profissional' && !viewedPatient) {
+      router.replace('/profissional');
+    }
+  }, [loggedUser, viewedPatient, router]);
+
+  const headerTitle = viewedPatient?.name || 'Paciente não selecionado';
+
+  const handleBackToPatients = () => {
+    clearViewedPatient();
+    router.replace('/profissional');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <StatusBar style="light" />
@@ -11,7 +38,7 @@ export default function HomeScreen() {
       <View style={styles.container}>
         <View style={styles.headerSection}>
           <View>
-            <Text style={styles.title}>Monitor de Sensores</Text>
+            <Text style={styles.title}>{headerTitle}</Text>
             <Text style={styles.subtitle}>Dados em tempo real do ESP</Text>
           </View>
 
@@ -20,6 +47,13 @@ export default function HomeScreen() {
               <MaterialIcons name="wifi" size={15} color="#01937C" />
               <Text style={styles.connectedText}>Conectado</Text>
             </View>
+
+            {isProfessional ? (
+              <TouchableOpacity style={styles.backButton} onPress={handleBackToPatients} activeOpacity={0.85}>
+                <MaterialIcons name="arrow-back" size={16} color="#88b6ac" />
+                <Text style={styles.backButtonText}>Pacientes</Text>
+              </TouchableOpacity>
+            ) : null}
 
             <View style={styles.refreshButton}>
               <MaterialIcons name="refresh" size={16} color="#8ca2c9" />
@@ -166,6 +200,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 9,
     gap: 6,
+  },
+  backButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1e584f',
+    backgroundColor: '#072923',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    gap: 5,
+  },
+  backButtonText: {
+    color: '#88b6ac',
+    fontSize: 13,
+    fontWeight: '700',
   },
   refreshText: {
     color: '#59797a',
