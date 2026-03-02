@@ -17,7 +17,7 @@ export default function HomeScreen() {
 
           <View style={styles.headerActions}>
             <View style={styles.connectedBadge}>
-              <MaterialIcons name="wifi" size={15} color="#1de7b7" />
+              <MaterialIcons name="wifi" size={15} color="#01937C" />
               <Text style={styles.connectedText}>Conectado</Text>
             </View>
 
@@ -108,11 +108,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#020a24',
+    backgroundColor: '#011814',
   },
   container: {
     flex: 1,
-    backgroundColor: '#020a24',
+    backgroundColor: '#011814',
     paddingHorizontal: 14,
     paddingTop: 6,
     paddingBottom: 12,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     maxWidth: 180,
   },
   subtitle: {
-    color: '#90a6ca',
+    color: '#88b6ac',
     fontSize: 21,
     lineHeight: 26,
     marginTop: 8,
@@ -143,9 +143,9 @@ const styles = StyleSheet.create({
   },
   connectedBadge: {
     borderRadius: 999,
-    backgroundColor: '#07343f',
+    backgroundColor: '#083b33',
     borderWidth: 1,
-    borderColor: '#0f4d58',
+    borderColor: '#0f6454',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   connectedText: {
-    color: '#1de7b7',
+    color: '#01937C',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   refreshText: {
-    color: '#8ca2c9',
+    color: '#59797a',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -186,16 +186,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   metricCardTemperature: {
-    backgroundColor: '#1f2940',
-    borderColor: '#334c73',
+    backgroundColor: '#17312b',
+    borderColor: '#2f5f53',
   },
   metricCardHumidity: {
-    backgroundColor: '#1d2f4e',
-    borderColor: '#35598a',
+    backgroundColor: '#163731',
+    borderColor: '#2f6e60',
   },
   metricCardPressure: {
-    backgroundColor: '#252a54',
-    borderColor: '#4f4f94',
+    backgroundColor: '#1a2f2b',
+    borderColor: '#3f6a63',
   },
   metricLabel: {
     color: '#a8c0e6',
@@ -241,8 +241,8 @@ const styles = StyleSheet.create({
     flex: 2,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#243a61',
-    backgroundColor: '#0b1a37',
+    borderColor: '#1e584f',
+    backgroundColor: '#072923',
     padding: 12,
   },
   cardHeader: {
@@ -268,8 +268,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#2a4f82',
-    backgroundColor: '#0b1731',
+    borderColor: '#206359',
+    backgroundColor: '#06231e',
     position: 'relative',
     overflow: 'hidden',
     minHeight: 250,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     borderTopWidth: 1,
-    borderTopColor: '#1e3559',
+    borderTopColor: '#1a4d45',
   },
   tempLine: {
     position: 'absolute',
@@ -301,15 +301,15 @@ const styles = StyleSheet.create({
   },
   axisLabel: {
     position: 'absolute',
-    color: '#81a0cb',
+    color: '#7caea3',
     fontSize: 12,
   },
   historyCard: {
     flex: 1,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#243a61',
-    backgroundColor: '#0a1732',
+    borderColor: '#1e584f',
+    backgroundColor: '#06231e',
     padding: 12,
     gap: 12,
   },
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   },
   historyItem: {
     borderTopWidth: 1,
-    borderTopColor: '#1f3257',
+    borderTopColor: '#1a4d45',
     paddingTop: 10,
     gap: 6,
   },
@@ -332,11 +332,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   historyReading: {
-    color: '#93a7ca',
+    color: '#8db6ae',
     fontSize: 14,
   },
   footerText: {
-    color: '#6f8db8',
+    color: '#6e9d93',
     fontSize: 13,
     textAlign: 'center',
     marginTop: 10,

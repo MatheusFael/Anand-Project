@@ -30,11 +30,11 @@ export default function TabTwoScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#020a24',
+    backgroundColor: '#011814',
   },
   container: {
     flex: 1,
-    backgroundColor: '#020a24',
+    backgroundColor: '#011814',
     padding: 16,
     gap: 12,
   },
@@ -44,15 +44,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   subtitle: {
-    color: '#8ea3c8',
+    color: '#88b6ac',
     fontSize: 15,
     marginBottom: 10,
   },
   card: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#223b62',
-    backgroundColor: '#0b1a37',
+    borderColor: '#1e584f',
+    backgroundColor: '#072923',
     padding: 12,
     gap: 6,
   },
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   value: {
-    color: '#96aad0',
+    color: '#8db6ae',
     fontSize: 14,
   },
 });
