@@ -16,8 +16,10 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [professionalId, setProfessionalId] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
 
   const handleRegister = async () => {
     if (isLoading) {
@@ -32,11 +34,27 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (userType === 'paciente' && !professionalId.trim()) {
+    setErrorMessage('Por favor, insira o código do seu profissional.');
+    return;
+  }
+
     setErrorMessage('');
     setIsLoading(true);
 
     try {
       const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+
+      const userData: any = {
+      name: normalizedName,
+      email: normalizedEmail,
+      type: userType,
+      createdAt: new Date().toISOString(), // Boa prática para histórico
+    };
+    if (userType === 'paciente') {
+      userData.assignedProfessionalId = professionalId.trim();
+    }
+    await setDoc(doc(db, 'users', cred.user.uid), userData);
 
       await setDoc(doc(db, 'users', cred.user.uid), {
         name: normalizedName,
@@ -63,91 +81,107 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Cadastro</Text>
-        <Text style={styles.subtitle}>Crie sua conta para começar</Text>
+  <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <View style={styles.container}>
+      <Text style={styles.title}>Cadastro</Text>
+      <Text style={styles.subtitle}>Crie sua conta para começar</Text>
 
-        <View style={styles.form}>
-          <View style={styles.fieldBlock}>
-            <Text style={styles.label}>Nome</Text>
-            <TextInput
-              placeholder="Seu nome completo"
-              placeholderTextColor="#7c91b6"
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-            />
+      <View style={styles.form}>
+        <View style={styles.fieldBlock}>
+          <Text style={styles.label}>Nome</Text>
+          <TextInput
+            placeholder="Seu nome completo"
+            placeholderTextColor="#7c91b6"
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+          />
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <Text style={styles.label}>E-mail</Text>
+          <TextInput
+            placeholder="seuemail@exemplo.com"
+            placeholderTextColor="#7c91b6"
+            style={styles.input}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+          />
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <Text style={styles.label}>Senha</Text>
+          <TextInput
+            placeholder="••••••••"
+            placeholderTextColor="#7c91b6"
+            style={styles.input}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+        </View>
+
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+        <View style={styles.fieldBlock}>
+          <Text style={styles.label}>Profissional ou Paciente</Text>
+          <View style={styles.selectorRow}>
+            <TouchableOpacity
+              style={[styles.selectorButton, userType === 'profissional' && styles.selectorButtonActive]}
+              onPress={() => setUserType('profissional')}
+              activeOpacity={0.85}>
+              <Text style={[styles.selectorText, userType === 'profissional' && styles.selectorTextActive]}>
+                Profissional
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.selectorButton, userType === 'paciente' && styles.selectorButtonActive]}
+              onPress={() => setUserType('paciente')}
+              activeOpacity={0.85}>
+              <Text style={[styles.selectorText, userType === 'paciente' && styles.selectorTextActive]}>
+                Paciente
+              </Text>
+            </TouchableOpacity>
           </View>
+        </View>
 
+        {/* --- NOVO CAMPO: SÓ APARECE PARA PACIENTES --- */}
+        {userType === 'paciente' && (
           <View style={styles.fieldBlock}>
-            <Text style={styles.label}>E-mail</Text>
+            <Text style={styles.label}>Código do Profissional</Text>
             <TextInput
-              placeholder="seuemail@exemplo.com"
+              placeholder="Digite o código enviado pelo seu médico"
               placeholderTextColor="#7c91b6"
               style={styles.input}
-              keyboardType="email-address"
+              value={professionalId}
+              onChangeText={setProfessionalId}
               autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
             />
           </View>
+        )}
+        {/* -------------------------------------------- */}
 
-          <View style={styles.fieldBlock}>
-            <Text style={styles.label}>Senha</Text>
-            <TextInput
-              placeholder="••••••••"
-              placeholderTextColor="#7c91b6"
-              style={styles.input}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-          </View>
-
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
-          <View style={styles.fieldBlock}>
-            <Text style={styles.label}>Profissional ou Paciente</Text>
-            <View style={styles.selectorRow}>
-              <TouchableOpacity
-                style={[styles.selectorButton, userType === 'profissional' && styles.selectorButtonActive]}
-                onPress={() => setUserType('profissional')}
-                activeOpacity={0.85}>
-                <Text style={[styles.selectorText, userType === 'profissional' && styles.selectorTextActive]}>
-                  Profissional
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.selectorButton, userType === 'paciente' && styles.selectorButtonActive]}
-                onPress={() => setUserType('paciente')}
-                activeOpacity={0.85}>
-                <Text style={[styles.selectorText, userType === 'paciente' && styles.selectorTextActive]}>
-                  Paciente
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
-            onPress={handleRegister}
-            activeOpacity={0.85}
-            disabled={isLoading}>
-            <Text style={styles.primaryButtonText}>{isLoading ? 'Cadastrando...' : 'Cadastrar'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Já tem conta?</Text>
-          <Link href="../login" style={styles.footerLink}>
-            Fazer login
-          </Link>
-        </View>
+        <TouchableOpacity
+          style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
+          onPress={handleRegister}
+          activeOpacity={0.85}
+          disabled={isLoading}>
+          <Text style={styles.primaryButtonText}>{isLoading ? 'Cadastrando...' : 'Cadastrar'}</Text>
+        </TouchableOpacity>
       </View>
-    </SafeAreaView>
-  );
+
+      <View style={styles.footerRow}>
+        <Text style={styles.footerText}>Já tem conta?</Text>
+        <Link href="../login" style={styles.footerLink}>
+          Fazer login
+        </Link>
+      </View>
+    </View>
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({
