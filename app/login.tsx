@@ -46,7 +46,7 @@ export default function LoginScreen() {
         });
         router.replace('/(tabs)');
     };
-
+//ronaldo
     return (
         <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
             <View style={styles.container}>
