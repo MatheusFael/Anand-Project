@@ -3,12 +3,34 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// firebase auth/config imports
+import { auth, db } from '@/firebaseConfig';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+
 export default function RegisterScreen() {
   const router = useRouter();
   const [userType, setUserType] = useState<'profissional' | 'paciente'>('profissional');
 
-  const handleRegister = () => {
-    router.replace('/(tabs)');
+  // form state for firebase registration
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleRegister = async () => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      // optionally store extra profile info in Firestore
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        name,
+        email,
+        type: userType,
+      });
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    }
   };
 
   return (
@@ -24,6 +46,8 @@ export default function RegisterScreen() {
               placeholder="Seu nome completo"
               placeholderTextColor="#7c91b6"
               style={styles.input}
+              value={name}
+              onChangeText={setName}
             />
           </View>
 
@@ -35,6 +59,8 @@ export default function RegisterScreen() {
               style={styles.input}
               keyboardType="email-address"
               autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
             />
           </View>
 
@@ -45,8 +71,12 @@ export default function RegisterScreen() {
               placeholderTextColor="#7c91b6"
               style={styles.input}
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
             />
           </View>
+
+          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
           <View style={styles.fieldBlock}>
             <Text style={styles.label}>Profissional ou Paciente</Text>
@@ -165,6 +195,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
+  },
+  errorText: {
+    color: '#ff8da4',
+    fontSize: 13,
+    fontWeight: '600',
   },
   primaryButtonText: {
     color: '#eef4ff',

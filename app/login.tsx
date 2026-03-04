@@ -3,6 +3,10 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// firebase imports
+import { auth } from '../firebaseConfig';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
 import { MOCK_ACCOUNTS } from '@/constants/mock-accounts';
 import { clearViewedPatient, setLoggedUser, setViewedPatient } from '@/constants/mock-session';
 
@@ -16,6 +20,15 @@ export default function LoginScreen() {
 
     const handleLogin = () => {
         const normalizedEmail = email.trim().toLowerCase();
+
+        // example using firebase auth; replace or augment mock logic as needed
+        // try {
+        //   const cred = await signInWithEmailAndPassword(auth, email, password);
+        //   // handle successful login with cred.user
+        // } catch (err) {
+        //   setErrorMessage(err.message);
+        //   return;
+        // }
 
         const account = MOCK_ACCOUNTS.find(
             (item) => item.email.toLowerCase() === normalizedEmail && item.password === password
