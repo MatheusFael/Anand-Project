@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { getLoggedUser, getViewedPatient } from '@/constants/mock-session';
+import { useAuth } from '@/contexts/auth-context';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -11,21 +11,28 @@ export default function TabLayout() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'dark'];
-  const loggedUser = getLoggedUser();
-  const viewedPatient = getViewedPatient();
+  const { firebaseUser, profile, viewedPatient, loading } = useAuth();
 
   useEffect(() => {
-    if (!loggedUser) {
+    if (loading) {
+      return;
+    }
+
+    if (!firebaseUser || !profile) {
       router.replace('/login');
       return;
     }
 
-    if (loggedUser.type === 'profissional' && !viewedPatient) {
+    if (profile.type === 'profissional' && !viewedPatient) {
       router.replace('/profissional');
     }
-  }, [loggedUser, viewedPatient, router]);
+  }, [firebaseUser, profile, viewedPatient, router, loading]);
 
-  if (!loggedUser || (loggedUser.type === 'profissional' && !viewedPatient)) {
+  if (loading) {
+    return null;
+  }
+
+  if (!firebaseUser || !profile || (profile.type === 'profissional' && !viewedPatient)) {
     return null;
   }
 

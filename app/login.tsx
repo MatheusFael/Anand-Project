@@ -7,59 +7,45 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../firebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
-import { MOCK_ACCOUNTS } from '@/constants/mock-accounts';
-import { clearViewedPatient, setLoggedUser, setViewedPatient } from '@/constants/mock-session';
-
 export default function LoginScreen() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-    const professionalAccount = MOCK_ACCOUNTS.find((item) => item.type === 'profissional');
-    const samplePatient = MOCK_ACCOUNTS.find((item) => item.type === 'paciente');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
+        if (isLoading) {
+            return;
+        }
+
         const normalizedEmail = email.trim().toLowerCase();
 
-        // example using firebase auth; replace or augment mock logic as needed
-        // try {
-        //   const cred = await signInWithEmailAndPassword(auth, email, password);
-        //   // handle successful login with cred.user
-        // } catch (err) {
-        //   setErrorMessage(err.message);
-        //   return;
-        // }
-
-        const account = MOCK_ACCOUNTS.find(
-            (item) => item.email.toLowerCase() === normalizedEmail && item.password === password
-        );
-
-        if (!account) {
-            setErrorMessage('Credenciais inválidas. Use uma conta de teste abaixo.');
+        if (!normalizedEmail || !password) {
+            setErrorMessage('Preencha e-mail e senha.');
             return;
         }
 
         setErrorMessage('');
-        setLoggedUser({
-            name: account.name,
-            email: account.email,
-            type: account.type,
-        });
+        setIsLoading(true);
 
-        if (account.type === 'profissional') {
-            clearViewedPatient();
-            router.replace('/profissional');
-            return;
+        try {
+            await signInWithEmailAndPassword(auth, normalizedEmail, password);
+            router.replace('/');
+        } catch (error: any) {
+            const code = error?.code as string | undefined;
+            if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+                setErrorMessage('E-mail ou senha inválidos.');
+            } else if (code === 'auth/invalid-email') {
+                setErrorMessage('E-mail inválido.');
+            } else {
+                setErrorMessage('Não foi possível entrar. Tente novamente.');
+            }
+        } finally {
+            setIsLoading(false);
         }
-
-        setViewedPatient({
-            name: account.name,
-            email: account.email,
-            type: account.type,
-        });
-        router.replace('/(tabs)');
     };
-//ronaldo
+
     return (
         <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
             <View style={styles.container}>
@@ -94,28 +80,13 @@ export default function LoginScreen() {
 
                     {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-                    <TouchableOpacity style={styles.primaryButton} onPress={handleLogin} activeOpacity={0.85}>
-                        <Text style={styles.primaryButtonText}>Login</Text>
+                    <TouchableOpacity
+                        style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
+                        onPress={handleLogin}
+                        activeOpacity={0.85}
+                        disabled={isLoading}>
+                        <Text style={styles.primaryButtonText}>{isLoading ? 'Entrando...' : 'Login'}</Text>
                     </TouchableOpacity>
-                </View>
-
-                <View style={styles.testAccountsCard}>
-                    <Text style={styles.testAccountsTitle}>Contas de teste</Text>
-                    {professionalAccount ? (
-                        <View style={styles.testAccountItem}>
-                            <Text style={styles.testAccountType}>PROFISSIONAL</Text>
-                            <Text style={styles.testAccountText}>E-mail: {professionalAccount.email}</Text>
-                            <Text style={styles.testAccountText}>Senha: {professionalAccount.password}</Text>
-                        </View>
-                    ) : null}
-
-                    {samplePatient ? (
-                        <View style={styles.testAccountItem}>
-                            <Text style={styles.testAccountType}>PACIENTE (EXEMPLO)</Text>
-                            <Text style={styles.testAccountText}>E-mail: {samplePatient.email}</Text>
-                            <Text style={styles.testAccountText}>Senha: {samplePatient.password}</Text>
-                        </View>
-                    ) : null}
                 </View>
 
                 <View style={styles.footerRow}>
@@ -192,31 +163,8 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '600',
     },
-    testAccountsCard: {
-        marginTop: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#1e584f',
-        backgroundColor: '#072923',
-        padding: 12,
-        gap: 10,
-    },
-    testAccountsTitle: {
-        color: '#eef4ff',
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    testAccountItem: {
-        gap: 2,
-    },
-    testAccountType: {
-        color: '#01937C',
-        fontSize: 12,
-        fontWeight: '800',
-    },
-    testAccountText: {
-        color: '#88b6ac',
-        fontSize: 13,
+    primaryButtonDisabled: {
+        opacity: 0.7,
     },
     footerRow: {
         marginTop: 18,

@@ -1,48 +1,99 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MOCK_ACCOUNTS } from '@/constants/mock-accounts';
-import { getLoggedUser, setViewedPatient } from '@/constants/mock-session';
+import { useAuth, type ViewedPatient } from '@/contexts/auth-context';
+import { db } from '@/firebaseConfig';
 
 export default function ProfessionalSelectScreen() {
   const router = useRouter();
-  const loggedUser = getLoggedUser();
+  const { firebaseUser, profile, setViewedPatient, loading } = useAuth();
+  const [patients, setPatients] = useState<ViewedPatient[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (!loggedUser || loggedUser.type !== 'profissional') {
+    if (loading) {
+      return;
+    }
+
+    if (!firebaseUser || !profile || profile.type !== 'profissional') {
       router.replace('/login');
     }
-  }, [loggedUser, router]);
+  }, [firebaseUser, profile, router, loading]);
 
-  if (!loggedUser || loggedUser.type !== 'profissional') {
+  useEffect(() => {
+    const loadPatients = async () => {
+      if (!firebaseUser || !profile || profile.type !== 'profissional') {
+        setPatientsLoading(false);
+        return;
+      }
+
+      setPatientsLoading(true);
+      setErrorMessage('');
+
+      try {
+        const patientsQuery = query(collection(db, 'users'), where('type', '==', 'paciente'));
+        const snapshot = await getDocs(patientsQuery);
+
+        const loadedPatients = snapshot.docs.map((item, index) => {
+          const data = item.data() as {
+            name?: string;
+            email?: string;
+            patientId?: string;
+            monitoringStatus?: string;
+          };
+
+          return {
+            uid: item.id,
+            name: data.name ?? 'Paciente sem nome',
+            email: data.email ?? 'sem-email',
+            type: 'paciente' as const,
+            patientId: data.patientId ?? `#${String(index + 1).padStart(4, '0')}`,
+            monitoringStatus: data.monitoringStatus ?? 'Ativo',
+          };
+        });
+
+        setPatients(loadedPatients);
+      } catch {
+        setErrorMessage('Não foi possível carregar os pacientes.');
+      } finally {
+        setPatientsLoading(false);
+      }
+    };
+
+    loadPatients();
+  }, [firebaseUser, profile]);
+
+  if (loading || !firebaseUser || !profile || profile.type !== 'profissional') {
     return null;
   }
 
-  const patients = MOCK_ACCOUNTS.filter((account) => account.type === 'paciente');
-
-  const handleSelectPatient = (patientEmail: string) => {
-    const patient = patients.find((item) => item.email === patientEmail);
+  const handleSelectPatient = (patientUid: string) => {
+    const patient = patients.find((item) => item.uid === patientUid);
 
     if (!patient) {
       return;
     }
 
-    setViewedPatient({
-      name: patient.name,
-      email: patient.email,
-      type: patient.type,
-    });
+    setViewedPatient(patient);
     router.replace('/(tabs)');
   };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        <Text style={styles.title}>Olá, {loggedUser.name}</Text>
+        <Text style={styles.title}>Olá, {profile.name || 'Profissional'}</Text>
         <Text style={styles.subtitle}>Selecione um paciente para monitorar</Text>
+
+        {patientsLoading ? <Text style={styles.infoText}>Carregando pacientes...</Text> : null}
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+        {!patientsLoading && !errorMessage && patients.length === 0 ? (
+          <Text style={styles.infoText}>Nenhum paciente cadastrado.</Text>
+        ) : null}
 
         <ScrollView
           style={styles.list}
@@ -52,9 +103,9 @@ export default function ProfessionalSelectScreen() {
           nestedScrollEnabled>
           {patients.map((patient) => (
             <TouchableOpacity
-              key={patient.email}
+              key={patient.uid}
               style={styles.patientButton}
-              onPress={() => handleSelectPatient(patient.email)}
+              onPress={() => handleSelectPatient(patient.uid)}
               activeOpacity={0.85}>
               <View style={styles.patientLeft}>
                 <View style={styles.patientIconWrap}>
@@ -98,7 +149,17 @@ const styles = StyleSheet.create({
     color: '#88b6ac',
     fontSize: 16,
     marginTop: 8,
-    marginBottom: 22,
+    marginBottom: 14,
+  },
+  infoText: {
+    color: '#88b6ac',
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  errorText: {
+    color: '#ff8da4',
+    fontSize: 14,
+    marginBottom: 10,
   },
   list: {
     flex: 1,

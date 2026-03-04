@@ -5,29 +5,36 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { clearViewedPatient, getLoggedUser, getViewedPatient } from '@/constants/mock-session';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const loggedUser = getLoggedUser();
-  const viewedPatient = getViewedPatient();
-  const isProfessional = loggedUser?.type === 'profissional';
+  const { firebaseUser, profile, viewedPatient, setViewedPatient, loading } = useAuth();
+  const isProfessional = profile?.type === 'profissional';
 
   useEffect(() => {
-    if (!loggedUser) {
+    if (loading) {
+      return;
+    }
+
+    if (!firebaseUser || !profile) {
       router.replace('/login');
       return;
     }
 
-    if (loggedUser.type === 'profissional' && !viewedPatient) {
+    if (profile.type === 'profissional' && !viewedPatient) {
       router.replace('/profissional');
     }
-  }, [loggedUser, viewedPatient, router]);
+  }, [firebaseUser, profile, viewedPatient, router, loading]);
+
+  if (loading || !firebaseUser || !profile) {
+    return null;
+  }
 
   const headerTitle = viewedPatient?.name || 'Paciente não selecionado';
 
   const handleBackToPatients = () => {
-    clearViewedPatient();
+    setViewedPatient(null);
     router.replace('/profissional');
   };
 

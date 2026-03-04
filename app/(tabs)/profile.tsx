@@ -1,24 +1,30 @@
 import { useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { clearLoggedUser, clearViewedPatient, getLoggedUser } from '@/constants/mock-session';
+import { useAuth } from '@/contexts/auth-context';
+import { auth } from '@/firebaseConfig';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const user = getLoggedUser();
-  const isProfessional = user?.type === 'profissional';
+  const { profile, setViewedPatient } = useAuth();
+  const isProfessional = profile?.type === 'profissional';
   const accountTypeLabel =
-    user?.type === 'profissional' ? 'Profissional' : user?.type === 'paciente' ? 'Paciente' : 'Não identificado';
+    profile?.type === 'profissional'
+      ? 'Profissional'
+      : profile?.type === 'paciente'
+        ? 'Paciente'
+        : 'Não identificado';
 
   const handleBackToPatients = () => {
-    clearViewedPatient();
+    setViewedPatient(null);
     router.replace('/profissional');
   };
 
-  const handleLogout = () => {
-    clearLoggedUser();
-    router.replace('../login');
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.replace('/login');
   };
 
   return (
@@ -39,12 +45,12 @@ export default function ProfileScreen() {
 
         <View style={styles.card}>
           <Text style={styles.label}>Nome</Text>
-          <Text style={styles.value}>{user?.name || 'Não identificado'}</Text>
+          <Text style={styles.value}>{profile?.name || 'Não identificado'}</Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.label}>E-mail</Text>
-          <Text style={styles.value}>{user?.email || 'Não identificado'}</Text>
+          <Text style={styles.value}>{profile?.email || 'Não identificado'}</Text>
         </View>
 
         <View style={styles.card}>

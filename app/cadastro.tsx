@@ -17,19 +17,48 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
+    if (isLoading) {
+      return;
+    }
+
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedName || !normalizedEmail || !password) {
+      setErrorMessage('Preencha nome, e-mail e senha.');
+      return;
+    }
+
+    setErrorMessage('');
+    setIsLoading(true);
+
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      // optionally store extra profile info in Firestore
+      const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+
       await setDoc(doc(db, 'users', cred.user.uid), {
-        name,
-        email,
+        name: normalizedName,
+        email: normalizedEmail,
         type: userType,
       });
-      router.replace('/(tabs)');
+
+      router.replace('/');
     } catch (err: any) {
-      setErrorMessage(err.message);
+      const code = err?.code as string | undefined;
+
+      if (code === 'auth/email-already-in-use') {
+        setErrorMessage('Esse e-mail já está em uso.');
+      } else if (code === 'auth/invalid-email') {
+        setErrorMessage('E-mail inválido.');
+      } else if (code === 'auth/weak-password') {
+        setErrorMessage('Senha fraca. Use pelo menos 6 caracteres.');
+      } else {
+        setErrorMessage('Não foi possível cadastrar. Tente novamente.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -101,8 +130,12 @@ export default function RegisterScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.primaryButton} onPress={handleRegister} activeOpacity={0.85}>
-            <Text style={styles.primaryButtonText}>Cadastrar</Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
+            onPress={handleRegister}
+            activeOpacity={0.85}
+            disabled={isLoading}>
+            <Text style={styles.primaryButtonText}>{isLoading ? 'Cadastrando...' : 'Cadastrar'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -200,6 +233,9 @@ const styles = StyleSheet.create({
     color: '#ff8da4',
     fontSize: 13,
     fontWeight: '600',
+  },
+  primaryButtonDisabled: {
+    opacity: 0.7,
   },
   primaryButtonText: {
     color: '#eef4ff',
