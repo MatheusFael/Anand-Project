@@ -16,7 +16,7 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [professionalId, setProfessionalId] = useState('');
+  const [professionalRef, setProfessionalRef] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
@@ -34,10 +34,12 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (userType === 'paciente' && !professionalId.trim()) {
-    setErrorMessage('Por favor, insira o código do seu profissional.');
-    return;
-  }
+    const normalizedProfessionalRef = professionalRef.trim().toLowerCase();
+
+    if (userType === 'paciente' && !normalizedProfessionalRef) {
+      setErrorMessage('Por favor, insira o e-mail do profissional.');
+      return;
+    }
 
     setErrorMessage('');
     setIsLoading(true);
@@ -52,7 +54,7 @@ export default function RegisterScreen() {
       createdAt: new Date().toISOString(), // Boa prática para histórico
     };
     if (userType === 'paciente') {
-      userData.assignedProfessionalId = professionalId.trim();
+      userData.assignedProfessionalId = normalizedProfessionalRef;
     }
     await setDoc(doc(db, 'users', cred.user.uid), userData);
 
@@ -147,11 +149,12 @@ export default function RegisterScreen() {
           <View style={styles.fieldBlock}>
             <Text style={styles.label}>Código do Profissional</Text>
             <TextInput
-              placeholder="Digite o código enviado pelo seu médico"
+              placeholder="Digite o e-mail do profissional"
               placeholderTextColor="#7c91b6"
               style={styles.input}
-              value={professionalId}
-              onChangeText={setProfessionalId}
+              keyboardType="email-address"
+              value={professionalRef}
+              onChangeText={setProfessionalRef}
               autoCapitalize="none"
             />
           </View>

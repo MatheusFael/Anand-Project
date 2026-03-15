@@ -1,4 +1,3 @@
-import { auth } from '@/firebaseConfig';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
@@ -8,7 +7,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth, type ViewedPatient } from '@/contexts/auth-context';
-import { db } from '@/firebaseConfig';
+import { auth, db } from '@/firebaseConfig';
 
 export default function ProfessionalSelectScreen() {
   const router = useRouter();
@@ -35,16 +34,37 @@ export default function ProfessionalSelectScreen() {
       }
 
       setPatientsLoading(true);
+      setErrorMessage('');
 
       try {
-        const patientsQuery = query(
-        collection(db, 'users'), 
-        where('type', '==', 'paciente'),
-        where('assignedProfessionalId', '==', firebaseUser.uid) // ou profile.email
-      );
-        const snapshot = await getDocs(patientsQuery);
+        const professionalEmail = profile.email.trim().toLowerCase();
 
-        const loadedPatients = snapshot.docs.map((item, index) => {
+        const byUidQuery = query(
+          collection(db, 'users'),
+          where('type', '==', 'paciente'),
+          where('assignedProfessionalId', '==', firebaseUser.uid)
+        );
+
+        const byEmailQuery = query(
+          collection(db, 'users'),
+          where('type', '==', 'paciente'),
+          where('assignedProfessionalId', '==', professionalEmail)
+        );
+
+        const [byUidSnapshot, byEmailSnapshot] = await Promise.all([
+          getDocs(byUidQuery),
+          getDocs(byEmailQuery),
+        ]);
+
+        const docMap = new Map<string, (typeof byUidSnapshot.docs)[number]>();
+        for (const docItem of byUidSnapshot.docs) {
+          docMap.set(docItem.id, docItem);
+        }
+        for (const docItem of byEmailSnapshot.docs) {
+          docMap.set(docItem.id, docItem);
+        }
+
+        const loadedPatients = Array.from(docMap.values()).map((item, index) => {
           const data = item.data() as {
             name?: string;
             email?: string;

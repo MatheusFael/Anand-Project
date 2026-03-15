@@ -2,7 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
@@ -11,6 +11,20 @@ export default function HomeScreen() {
   const router = useRouter();
   const { firebaseUser, profile, viewedPatient, setViewedPatient, loading } = useAuth();
   const isProfessional = profile?.type === 'profissional';
+
+  // Mock de telemetria ate a integracao da ESP + MPU6050.
+  const mockSensor = {
+    x: 0.38,
+    y: -0.14,
+    z: 0.92,
+    angle: 31.6,
+    status: 'correta' as const,
+    history: [
+      { time: '10:05', angle: 28.9, note: 'Execucao correta' },
+      { time: '09:42', angle: 35.1, note: 'Punho acima do ideal' },
+      { time: '09:11', angle: 30.2, note: 'Execucao correta' },
+    ],
+  };
 
   useEffect(() => {
     if (loading) {
@@ -42,11 +56,11 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <StatusBar style="light" />
 
-      <View style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <View>
             <Text style={styles.title}>{headerTitle}</Text>
-            <Text style={styles.subtitle}>Dados em tempo real do ESP</Text>
+            <Text style={styles.subtitle}>Dados em tempo real do MPU6050</Text>
           </View>
 
           <View style={styles.headerActions}>
@@ -61,87 +75,81 @@ export default function HomeScreen() {
                 <Text style={styles.backButtonText}>Pacientes</Text>
               </TouchableOpacity>
             ) : null}
+          </View>
+        </View>
 
-            <View style={styles.refreshButton}>
-              <MaterialIcons name="refresh" size={16} color="#8ca2c9" />
-              <Text style={styles.refreshText}>Atualizar</Text>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Posicao do Sensor (X, Y, Z)</Text>
+            <Text style={styles.badge}>MPU6050</Text>
+          </View>
+
+          <View style={styles.valueRow}>
+            <View style={styles.axisBox}>
+              <Text style={styles.axisLabel}>X</Text>
+              <Text style={styles.axisValue}>{mockSensor.x.toFixed(2)}</Text>
+            </View>
+            <View style={styles.axisBox}>
+              <Text style={styles.axisLabel}>Y</Text>
+              <Text style={styles.axisValue}>{mockSensor.y.toFixed(2)}</Text>
+            </View>
+            <View style={styles.axisBox}>
+              <Text style={styles.axisLabel}>Z</Text>
+              <Text style={styles.axisValue}>{mockSensor.z.toFixed(2)}</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.metricsRow}>
-          <View style={[styles.metricCard, styles.metricCardTemperature]}>
-            <Text style={styles.metricLabel}>Temperatura</Text>
-            <View style={styles.metricValueRow}>
-              <Text style={styles.metricValue}>25.3</Text>
-              <Text style={styles.metricUnit}>°C</Text>
-            </View>
-            <Text style={[styles.metricDelta, styles.metricDeltaDown]}>↓ 1.3 desde ontem</Text>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Angulo da Mao</Text>
+            <Text style={styles.badgeMuted}>Tempo real</Text>
           </View>
 
-          <View style={[styles.metricCard, styles.metricCardHumidity]}>
-            <Text style={styles.metricLabel}>Umidade</Text>
-            <View style={styles.metricValueRow}>
-              <Text style={styles.metricValue}>68.0</Text>
-              <Text style={styles.metricUnit}>%</Text>
-            </View>
-            <Text style={[styles.metricDelta, styles.metricDeltaUp]}>↑ 7.1 desde ontem</Text>
-          </View>
-
-          <View style={[styles.metricCard, styles.metricCardPressure]}>
-            <Text style={styles.metricLabel}>Pressão</Text>
-            <View style={styles.metricValueRow}>
-              <Text style={styles.metricValue}>1013</Text>
-              <Text style={styles.metricUnit}>hPa</Text>
-            </View>
-            <Text style={[styles.metricDelta, styles.metricDeltaMuted]}>Estável</Text>
-          </View>
+          <Text style={styles.angleValue}>{mockSensor.angle.toFixed(1)} deg</Text>
+          <Text style={styles.helperText}>Faixa ideal de exercicio: 25 deg a 35 deg</Text>
         </View>
 
-        <View style={styles.contentRow}>
-          <View style={styles.chartCard}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Monitoramento em Tempo Real</Text>
-              <Text style={styles.liveTag}>Ao vivo</Text>
-            </View>
-
-            <View style={styles.chartArea}>
-              <View style={[styles.gridLine, { top: 20 }]} />
-              <View style={[styles.gridLine, { top: 74 }]} />
-              <View style={[styles.gridLine, { top: 128 }]} />
-              <View style={[styles.gridLine, { top: 182 }]} />
-
-              <View style={styles.tempLine} />
-              <View style={styles.humidityLine} />
-
-              <Text style={[styles.axisLabel, { left: 10, bottom: 6 }]}>09:00</Text>
-              <Text style={[styles.axisLabel, { left: 78, bottom: 6 }]}>12:00</Text>
-              <Text style={[styles.axisLabel, { left: 145, bottom: 6 }]}>14:30</Text>
-            </View>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Interpretacao dos Dados</Text>
+            <Text
+              style={[
+                styles.statusPill,
+                mockSensor.status === 'correta' ? styles.statusPillSuccess : styles.statusPillDanger,
+              ]}>
+              {mockSensor.status === 'correta' ? 'Posicao correta' : 'Posicao incorreta'}
+            </Text>
           </View>
 
-          <View style={styles.historyCard}>
-            <Text style={styles.historyTitle}>Histórico Diário</Text>
+          <Text style={styles.interpretationText}>
+            {mockSensor.status === 'correta'
+              ? 'O punho esta alinhado com o angulo esperado para o exercicio.'
+              : 'Corrija a inclinacao do punho para evitar sobrecarga.'}
+          </Text>
+        </View>
 
-            <View style={styles.historyItem}>
-              <Text style={styles.historyDay}>domingo, 1 de março</Text>
-              <Text style={styles.historyReading}>🌡 23.8°C</Text>
-            </View>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Historico do Paciente</Text>
+            <Text style={styles.badgeMuted}>Ultimas leituras</Text>
+          </View>
 
-            <View style={styles.historyItem}>
-              <Text style={styles.historyDay}>sábado, 28 de fevereiro</Text>
-              <Text style={styles.historyReading}>🌡 25.1°C</Text>
-            </View>
-
-            <View style={styles.historyItem}>
-              <Text style={styles.historyDay}>sexta-feira, 27 de fevereiro</Text>
-              <Text style={styles.historyReading}>🌡 23.4°C</Text>
-            </View>
+          <View style={styles.historyList}>
+            {mockSensor.history.map((entry) => (
+              <View key={`${entry.time}-${entry.angle}`} style={styles.historyItem}>
+                <Text style={styles.historyTime}>{entry.time}</Text>
+                <View style={styles.historyCenter}>
+                  <Text style={styles.historyAngle}>{entry.angle.toFixed(1)} deg</Text>
+                  <Text style={styles.historyNote}>{entry.note}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
 
         <Text style={styles.footerText}>Última leitura: 01/03/2026 20:58:44</Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -154,9 +162,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#011814',
+  },
+  content: {
     paddingHorizontal: 14,
-    paddingTop: 6,
-    paddingBottom: 12,
+    paddingTop: 8,
+    paddingBottom: 18,
+    gap: 12,
   },
   headerSection: {
     flexDirection: 'row',
@@ -180,7 +191,7 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     gap: 10,
-    marginTop: 10,
+    marginTop: 8,
   },
   connectedBadge: {
     borderRadius: 999,
@@ -197,16 +208,6 @@ const styles = StyleSheet.create({
     color: '#01937C',
     fontSize: 14,
     fontWeight: '700',
-  },
-  refreshButton: {
-    borderRadius: 8,
-    backgroundColor: '#f3f6fb',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    gap: 6,
   },
   backButton: {
     borderRadius: 8,
@@ -225,178 +226,135 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  refreshText: {
-    color: '#59797a',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  metricCard: {
-    flex: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 10,
-    minHeight: 138,
-    justifyContent: 'space-between',
-  },
-  metricCardTemperature: {
-    backgroundColor: '#17312b',
-    borderColor: '#2f5f53',
-  },
-  metricCardHumidity: {
-    backgroundColor: '#163731',
-    borderColor: '#2f6e60',
-  },
-  metricCardPressure: {
-    backgroundColor: '#1a2f2b',
-    borderColor: '#3f6a63',
-  },
-  metricLabel: {
-    color: '#a8c0e6',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  metricValueRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  metricValue: {
-    color: '#f3f7ff',
-    fontSize: 44,
-    lineHeight: 48,
-    fontWeight: '800',
-  },
-  metricUnit: {
-    color: '#95abc8',
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 7,
-  },
-  metricDelta: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  metricDeltaDown: {
-    color: '#ff5f7b',
-  },
-  metricDeltaUp: {
-    color: '#45f8ce',
-  },
-  metricDeltaMuted: {
-    color: '#9fadd1',
-  },
-  contentRow: {
-    flexDirection: 'row',
-    gap: 10,
-    flex: 1,
-  },
-  chartCard: {
-    flex: 2,
-    borderRadius: 14,
+  card: {
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#1e584f',
     backgroundColor: '#072923',
     padding: 12,
+    gap: 10,
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'space-between',
+    gap: 8,
   },
   cardTitle: {
-    color: '#f0f6ff',
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '800',
-    maxWidth: 165,
-  },
-  liveTag: {
-    color: '#32e2b7',
-    fontSize: 13,
+    color: '#edf5ff',
+    fontSize: 20,
     fontWeight: '700',
   },
-  chartArea: {
+  badge: {
+    color: '#28e3bf',
+    fontSize: 12,
+    fontWeight: '700',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#0f6454',
+    backgroundColor: '#083b33',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  badgeMuted: {
+    color: '#9ab8b4',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  valueRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  axisBox: {
     flex: 1,
     borderRadius: 10,
     borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#206359',
-    backgroundColor: '#06231e',
-    position: 'relative',
-    overflow: 'hidden',
-    minHeight: 250,
-  },
-  gridLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    borderTopWidth: 1,
-    borderTopColor: '#1a4d45',
-  },
-  tempLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 52,
-    height: 3,
-    borderRadius: 999,
-    backgroundColor: '#2c8bff',
-  },
-  humidityLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 156,
-    height: 3,
-    borderRadius: 999,
-    backgroundColor: '#ff892d',
+    borderColor: '#1e584f',
+    backgroundColor: '#08332b',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 2,
   },
   axisLabel: {
-    position: 'absolute',
-    color: '#7caea3',
+    color: '#8bb5aa',
     fontSize: 12,
-  },
-  historyCard: {
-    flex: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#1e584f',
-    backgroundColor: '#06231e',
-    padding: 12,
-    gap: 12,
-  },
-  historyTitle: {
-    color: '#f2f7ff',
-    fontSize: 34,
-    lineHeight: 38,
-    fontWeight: '800',
-  },
-  historyItem: {
-    borderTopWidth: 1,
-    borderTopColor: '#1a4d45',
-    paddingTop: 10,
-    gap: 6,
-  },
-  historyDay: {
-    color: '#eef4ff',
-    fontSize: 15,
-    lineHeight: 21,
     fontWeight: '700',
   },
-  historyReading: {
+  axisValue: {
+    color: '#eef4ff',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  angleValue: {
+    color: '#eef4ff',
+    fontSize: 36,
+    lineHeight: 40,
+    fontWeight: '800',
+  },
+  helperText: {
+    color: '#88b6ac',
+    fontSize: 13,
+  },
+  statusPill: {
+    fontSize: 12,
+    fontWeight: '700',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    overflow: 'hidden',
+  },
+  statusPillSuccess: {
+    color: '#44f3ce',
+    borderColor: '#0f6454',
+    backgroundColor: '#083b33',
+  },
+  statusPillDanger: {
+    color: '#ff8da4',
+    borderColor: '#7b2335',
+    backgroundColor: '#3a0d1b',
+  },
+  interpretationText: {
+    color: '#d7e9e4',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  historyList: {
+    gap: 8,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1e584f',
+    backgroundColor: '#08332b',
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    gap: 10,
+  },
+  historyTime: {
+    color: '#88b6ac',
+    fontSize: 12,
+    width: 44,
+    fontWeight: '700',
+  },
+  historyCenter: {
+    flex: 1,
+  },
+  historyAngle: {
+    color: '#eef4ff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  historyNote: {
     color: '#8db6ae',
-    fontSize: 14,
+    fontSize: 12,
   },
   footerText: {
     color: '#6e9d93',
     fontSize: 13,
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 2,
   },
 });

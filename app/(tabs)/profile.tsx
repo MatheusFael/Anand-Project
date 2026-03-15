@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   value: {
-    color: '#edf5ff',
+    color: '#eef4ff',
     fontSize: 16,
     fontWeight: '700',
   },
