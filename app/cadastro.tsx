@@ -56,12 +56,6 @@ export default function RegisterScreen() {
     }
     await setDoc(doc(db, 'users', cred.user.uid), userData);
 
-      await setDoc(doc(db, 'users', cred.user.uid), {
-        name: normalizedName,
-        email: normalizedEmail,
-        type: userType,
-      });
-
       router.replace('/');
     } catch (err: any) {
       const code = err?.code as string | undefined;

@@ -1,5 +1,7 @@
+import { auth } from '@/firebaseConfig';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -33,10 +35,13 @@ export default function ProfessionalSelectScreen() {
       }
 
       setPatientsLoading(true);
-      setErrorMessage('');
 
       try {
-        const patientsQuery = query(collection(db, 'users'), where('type', '==', 'paciente'));
+        const patientsQuery = query(
+        collection(db, 'users'), 
+        where('type', '==', 'paciente'),
+        where('assignedProfessionalId', '==', firebaseUser.uid) // ou profile.email
+      );
         const snapshot = await getDocs(patientsQuery);
 
         const loadedPatients = snapshot.docs.map((item, index) => {
@@ -83,11 +88,25 @@ export default function ProfessionalSelectScreen() {
     router.replace('/(tabs)');
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.replace('/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
         <Text style={styles.title}>Olá, {profile.name || 'Profissional'}</Text>
         <Text style={styles.subtitle}>Selecione um paciente para monitorar</Text>
+
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <MaterialIcons name="logout" size={20} color="#ff8da4" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
 
         {patientsLoading ? <Text style={styles.infoText}>Carregando pacientes...</Text> : null}
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -119,9 +138,9 @@ export default function ProfessionalSelectScreen() {
                   </Text>
                 </View>
               </View>
-
               <MaterialIcons name="chevron-right" size={22} color="#88b6ac" />
             </TouchableOpacity>
+            
           ))}
         </ScrollView>
       </View>
@@ -207,5 +226,17 @@ const styles = StyleSheet.create({
   patientMeta: {
     color: '#88b6ac',
     fontSize: 13,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  logoutText: {
+    color: '#ff8da4',
+    fontSize: 16,
+    marginLeft: 5,
   },
 });
