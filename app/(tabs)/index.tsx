@@ -1,23 +1,27 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { onValue, ref } from 'firebase/database';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
+import { db, realtimeDb } from '@/firebaseConfig';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { firebaseUser, profile, viewedPatient, setViewedPatient, loading } = useAuth();
+  const { firebaseUser, profile, viewedPatient, setViewedPatient, loading, messagesByPatient } = useAuth();
   const isProfessional = profile?.type === 'profissional';
+  const currentMessage = viewedPatient ? messagesByPatient[viewedPatient.uid] : undefined;
+  const [liveMessage, setLiveMessage] = useState<string | undefined>(undefined);
+  const [livePitch, setLivePitch] = useState<number | null>(null);
+  const [liveRoll, setLiveRoll] = useState<number | null>(null);
 
   // Mock de telemetria ate a integracao da ESP + MPU6050.
-  const mockSensor = {
-    x: 0.38,
-    y: -0.14,
-    z: 0.92,
-    angle: 31.6,
+  const mockSensor = {    pitch: 31.6,
+    roll: 7.8,
     status: 'correta' as const,
     history: [
       { time: '10:05', angle: 28.9, note: 'Execucao correta' },
@@ -40,6 +44,45 @@ export default function HomeScreen() {
       router.replace('/profissional');
     }
   }, [firebaseUser, profile, viewedPatient, router, loading]);
+
+  useEffect(() => {
+    const targetPatientUid =
+      profile?.type === 'paciente'
+        ? profile.uid
+        : viewedPatient?.uid;
+
+    if (!targetPatientUid) {
+      setLiveMessage(undefined);
+      return;
+    }
+
+    const unsubscribe = onSnapshot(doc(db, 'patientMessages', targetPatientUid), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as { message?: string };
+        setLiveMessage(data?.message ?? undefined);
+      } else {
+        setLiveMessage(undefined);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [profile, viewedPatient]);
+
+  useEffect(() => {
+    const sensorRef = ref(realtimeDb, 'sensors/esp001');
+    const unsubscribe = onValue(sensorRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val() as { pitch?: number; roll?: number };
+        setLivePitch(data?.pitch ?? null);
+        setLiveRoll(data?.roll ?? null);
+      } else {
+        setLivePitch(null);
+        setLiveRoll(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   if (loading || !firebaseUser || !profile) {
     return null;
@@ -80,34 +123,22 @@ export default function HomeScreen() {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Posicao do Sensor (X, Y, Z)</Text>
-            <Text style={styles.badge}>MPU6050</Text>
-          </View>
-
-          <View style={styles.valueRow}>
-            <View style={styles.axisBox}>
-              <Text style={styles.axisLabel}>X</Text>
-              <Text style={styles.axisValue}>{mockSensor.x.toFixed(2)}</Text>
-            </View>
-            <View style={styles.axisBox}>
-              <Text style={styles.axisLabel}>Y</Text>
-              <Text style={styles.axisValue}>{mockSensor.y.toFixed(2)}</Text>
-            </View>
-            <View style={styles.axisBox}>
-              <Text style={styles.axisLabel}>Z</Text>
-              <Text style={styles.axisValue}>{mockSensor.z.toFixed(2)}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Angulo da Mao</Text>
             <Text style={styles.badgeMuted}>Tempo real</Text>
           </View>
 
-          <Text style={styles.angleValue}>{mockSensor.angle.toFixed(1)} deg</Text>
-          <Text style={styles.helperText}>Faixa ideal de exercicio: 25 deg a 35 deg</Text>
+          <View style={styles.valueRow}>
+            <View style={styles.sensorBox}>
+              <Text style={styles.axisLabel}>Inclinação Vertical</Text>
+              <Text style={styles.axisValue}>{mockSensor.pitch.toFixed(1)}°</Text>
+            </View>
+            <View style={styles.sensorBox}>
+              <Text style={styles.axisLabel}>Inclinação Lateral</Text>
+              <Text style={styles.axisValue}>{mockSensor.roll.toFixed(1)}°</Text>
+            </View>
+          </View>
+
+          <Text style={styles.helperText}>Valores reais retornados pela ESP (MPU6050).</Text>
         </View>
 
         <View style={styles.card}>
@@ -129,23 +160,42 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        {isProfessional ? (
+          <TouchableOpacity
+            style={styles.sendMessageButton}
+            onPress={() => router.push('/enviar-mensagem')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.sendMessageButtonText}>Enviar mensagem ao paciente</Text>
+          </TouchableOpacity>
+        ) : null}
+
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Historico do Paciente</Text>
-            <Text style={styles.badgeMuted}>Ultimas leituras</Text>
+            <Text style={styles.cardTitle}>
+              {isProfessional ? 'Mensagem atual para o paciente' : 'Mensagem do profissional'}
+            </Text>
           </View>
 
-          <View style={styles.historyList}>
-            {mockSensor.history.map((entry) => (
-              <View key={`${entry.time}-${entry.angle}`} style={styles.historyItem}>
-                <Text style={styles.historyTime}>{entry.time}</Text>
-                <View style={styles.historyCenter}>
-                  <Text style={styles.historyAngle}>{entry.angle.toFixed(1)} deg</Text>
-                  <Text style={styles.historyNote}>{entry.note}</Text>
-                </View>
-              </View>
-            ))}
+          <Text style={styles.interpretationText}>
+            {liveMessage?.trim().length
+              ? liveMessage
+              : currentMessage?.trim().length
+                ? currentMessage
+                : 'Nenhuma mensagem enviada ainda.'}
+          </Text>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Leitura de sensor (ESP)</Text>
           </View>
+
+          <Text style={styles.interpretationText}>
+            {livePitch !== null && liveRoll !== null
+              ? `Pitch: ${livePitch.toFixed(2)}°, Roll: ${liveRoll.toFixed(2)}°`
+              : 'Aguardando leitura do sensor...'}
+          </Text>
         </View>
 
         <Text style={styles.footerText}>Última leitura: 01/03/2026 20:58:44</Text>
@@ -263,17 +313,23 @@ const styles = StyleSheet.create({
   },
   valueRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: 10,
+    marginBottom: 8,
   },
-  axisBox: {
+  sensorBox: {
     flex: 1,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#1e584f',
     backgroundColor: '#08332b',
     alignItems: 'center',
-    paddingVertical: 10,
-    gap: 2,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    marginHorizontal: 2,
+    minWidth: 115,
   },
   axisLabel: {
     color: '#8bb5aa',
@@ -350,6 +406,20 @@ const styles = StyleSheet.create({
   historyNote: {
     color: '#8db6ae',
     fontSize: 12,
+  },
+  sendMessageButton: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1e584f',
+    backgroundColor: '#19a17b',
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  sendMessageButtonText: {
+    color: '#eef4ff',
+    fontSize: 15,
+    fontWeight: '700',
   },
   footerText: {
     color: '#6e9d93',

@@ -105,7 +105,7 @@ export default function ProfessionalSelectScreen() {
     }
 
     setViewedPatient(patient);
-    router.replace('/(tabs)');
+    router.replace('/');
   };
 
   const handleLogout = async () => {

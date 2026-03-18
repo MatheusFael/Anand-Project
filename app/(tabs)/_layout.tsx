@@ -3,8 +3,8 @@ import React, { useEffect } from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useAuth } from '@/contexts/auth-context';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/contexts/auth-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
@@ -32,7 +32,11 @@ export default function TabLayout() {
     return null;
   }
 
-  if (!firebaseUser || !profile || (profile.type === 'profissional' && !viewedPatient)) {
+  if (!firebaseUser || !profile) {
+    return null;
+  }
+
+  if ((profile.type === 'profissional' || profile.type === 'paciente') && !viewedPatient) {
     return null;
   }
 
