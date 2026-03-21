@@ -28,6 +28,8 @@ export default function HomeScreen() {
     updatedAt: null,
   });
 
+
+
   useEffect(() => {
     const targetPatientUid =
       profile?.type === 'paciente'
@@ -52,14 +54,14 @@ export default function HomeScreen() {
   }, [profile, viewedPatient]);
 
   useEffect(() => {
-    const sensorRef = ref(realtimeDb, 'sensors/esp001');
+    const sensorRef = ref(realtimeDb, 'angulacao');
     const unsubscribe = onValue(sensorRef, (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.val() as { pitch?: number; roll?: number; updatedAt?: number };
+        const data = snapshot.val() as { horizontal?: number; vertical?: number };
         setSensorData({
-          pitch: data?.pitch ?? null,
-          roll: data?.roll ?? null,
-          updatedAt: data?.updatedAt ?? null,
+          pitch: data?.vertical ?? null,
+          roll: data?.horizontal ?? null,
+          updatedAt: Date.now(),
         });
       } else {
         setSensorData({ pitch: null, roll: null, updatedAt: null });
@@ -156,7 +158,9 @@ export default function HomeScreen() {
               <Text style={styles.helperText}>Valores reais retornados pela ESP (MPU6050).</Text>
             </>
           ) : (
-            <Text style={styles.interpretationText}>Aguardando conexão com sensor...</Text>
+            <Text style={styles.interpretationText}>
+              Aguardando conexão com sensor...
+            </Text>
           )}
         </View>
 

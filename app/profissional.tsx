@@ -68,6 +68,7 @@ export default function ProfessionalSelectScreen() {
           const data = item.data() as {
             name?: string;
             email?: string;
+            assignedProfessionalId?: string;
             patientId?: string;
             monitoringStatus?: string;
           };
@@ -77,6 +78,7 @@ export default function ProfessionalSelectScreen() {
             name: data.name ?? 'Paciente sem nome',
             email: data.email ?? 'sem-email',
             type: 'paciente' as const,
+            assignedProfessionalId: data.assignedProfessionalId?.trim().toLowerCase(),
             patientId: data.patientId ?? `#${String(index + 1).padStart(4, '0')}`,
             monitoringStatus: data.monitoringStatus ?? 'Ativo',
           };

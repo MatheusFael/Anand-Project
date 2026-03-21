@@ -1,13 +1,13 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  createContext,
-  type PropsWithChildren,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
+    createContext,
+    type PropsWithChildren,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import { auth, db } from '@/firebaseConfig';
@@ -19,6 +19,7 @@ export type UserProfile = {
   name: string;
   email: string;
   type: UserType;
+  assignedProfessionalId?: string;
 };
 
 export type ViewedPatient = {
@@ -26,6 +27,7 @@ export type ViewedPatient = {
   name: string;
   email: string;
   type: 'paciente';
+  assignedProfessionalId?: string;
   patientId?: string;
   monitoringStatus?: string;
 };
@@ -71,6 +73,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             name?: string;
             email?: string;
             type?: UserType;
+            assignedProfessionalId?: string;
           };
 
           const nextProfile: UserProfile = {
@@ -78,6 +81,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             name: data.name ?? currentUser.displayName ?? '',
             email: data.email ?? currentUser.email ?? '',
             type: data.type === 'profissional' ? 'profissional' : 'paciente',
+            assignedProfessionalId: data.assignedProfessionalId?.trim().toLowerCase(),
           };
 
           setProfile(nextProfile);
@@ -88,6 +92,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
               name: nextProfile.name,
               email: nextProfile.email,
               type: 'paciente',
+              assignedProfessionalId: nextProfile.assignedProfessionalId,
             });
           } else {
             setViewedPatient(null);
