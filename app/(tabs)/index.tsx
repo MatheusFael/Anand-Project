@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { onValue, ref } from 'firebase/database';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -10,40 +10,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/auth-context';
 import { db, realtimeDb } from '@/firebaseConfig';
 
+interface SensorData {
+  pitch: number | null;
+  roll: number | null;
+  updatedAt: number | null;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { firebaseUser, profile, viewedPatient, setViewedPatient, loading, messagesByPatient } = useAuth();
   const isProfessional = profile?.type === 'profissional';
   const currentMessage = viewedPatient ? messagesByPatient[viewedPatient.uid] : undefined;
   const [liveMessage, setLiveMessage] = useState<string | undefined>(undefined);
-  const [livePitch, setLivePitch] = useState<number | null>(null);
-  const [liveRoll, setLiveRoll] = useState<number | null>(null);
-
-  // Mock de telemetria ate a integracao da ESP + MPU6050.
-  const mockSensor = {    pitch: 31.6,
-    roll: 7.8,
-    status: 'correta' as const,
-    history: [
-      { time: '10:05', angle: 28.9, note: 'Execucao correta' },
-      { time: '09:42', angle: 35.1, note: 'Punho acima do ideal' },
-      { time: '09:11', angle: 30.2, note: 'Execucao correta' },
-    ],
-  };
-
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-
-    if (!firebaseUser || !profile) {
-      router.replace('/login');
-      return;
-    }
-
-    if (profile.type === 'profissional' && !viewedPatient) {
-      router.replace('/profissional');
-    }
-  }, [firebaseUser, profile, viewedPatient, router, loading]);
+  const [sensorData, setSensorData] = useState<SensorData>({
+    pitch: null,
+    roll: null,
+    updatedAt: null,
+  });
 
   useEffect(() => {
     const targetPatientUid =
@@ -72,20 +55,51 @@ export default function HomeScreen() {
     const sensorRef = ref(realtimeDb, 'sensors/esp001');
     const unsubscribe = onValue(sensorRef, (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.val() as { pitch?: number; roll?: number };
-        setLivePitch(data?.pitch ?? null);
-        setLiveRoll(data?.roll ?? null);
+        const data = snapshot.val() as { pitch?: number; roll?: number; updatedAt?: number };
+        setSensorData({
+          pitch: data?.pitch ?? null,
+          roll: data?.roll ?? null,
+          updatedAt: data?.updatedAt ?? null,
+        });
       } else {
-        setLivePitch(null);
-        setLiveRoll(null);
+        setSensorData({ pitch: null, roll: null, updatedAt: null });
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  if (loading || !firebaseUser || !profile) {
+  // Determina status baseado em valores reais (dentro do range esperado)
+  const getAngleStatus = () => {
+    if (sensorData.pitch === null || sensorData.roll === null) {
+      return 'aguardando';
+    }
+    const pitch = Math.abs(sensorData.pitch);
+    const roll = Math.abs(sensorData.roll);
+    // Range esperado: pitch -15 a 15, roll -10 a 10
+    if (pitch <= 15 && roll <= 10) {
+      return 'correta';
+    }
+    return 'incorreta';
+  };
+
+  // Formata timestamp do Firebase (milissegundos desde 1970)
+  const formatSensorTime = () => {
+    if (!sensorData.updatedAt) return '--:--:--';
+    const date = new Date(sensorData.updatedAt);
+    return date.toLocaleTimeString('pt-BR');
+  };
+
+  if (loading) {
     return null;
+  }
+
+  if (!firebaseUser || !profile) {
+    return <Redirect href="/login" />;
+  }
+
+  if (profile.type === 'profissional' && !viewedPatient) {
+    return <Redirect href="/profissional" />;
   }
 
   const headerTitle = viewedPatient?.name || 'Paciente não selecionado';
@@ -127,18 +141,23 @@ export default function HomeScreen() {
             <Text style={styles.badgeMuted}>Tempo real</Text>
           </View>
 
-          <View style={styles.valueRow}>
-            <View style={styles.sensorBox}>
-              <Text style={styles.axisLabel}>Inclinação Vertical</Text>
-              <Text style={styles.axisValue}>{mockSensor.pitch.toFixed(1)}°</Text>
-            </View>
-            <View style={styles.sensorBox}>
-              <Text style={styles.axisLabel}>Inclinação Lateral</Text>
-              <Text style={styles.axisValue}>{mockSensor.roll.toFixed(1)}°</Text>
-            </View>
-          </View>
-
-          <Text style={styles.helperText}>Valores reais retornados pela ESP (MPU6050).</Text>
+          {sensorData.pitch !== null && sensorData.roll !== null ? (
+            <>
+              <View style={styles.valueRow}>
+                <View style={styles.sensorBox}>
+                  <Text style={styles.axisLabel}>Inclinação Vertical</Text>
+                  <Text style={styles.axisValue}>{sensorData.pitch.toFixed(1)}°</Text>
+                </View>
+                <View style={styles.sensorBox}>
+                  <Text style={styles.axisLabel}>Inclinação Lateral</Text>
+                  <Text style={styles.axisValue}>{sensorData.roll.toFixed(1)}°</Text>
+                </View>
+              </View>
+              <Text style={styles.helperText}>Valores reais retornados pela ESP (MPU6050).</Text>
+            </>
+          ) : (
+            <Text style={styles.interpretationText}>Aguardando conexão com sensor...</Text>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -147,16 +166,22 @@ export default function HomeScreen() {
             <Text
               style={[
                 styles.statusPill,
-                mockSensor.status === 'correta' ? styles.statusPillSuccess : styles.statusPillDanger,
+                getAngleStatus() === 'correta' ? styles.statusPillSuccess : getAngleStatus() === 'incorreta' ? styles.statusPillDanger : styles.statusPillMuted,
               ]}>
-              {mockSensor.status === 'correta' ? 'Posicao correta' : 'Posicao incorreta'}
+              {getAngleStatus() === 'correta'
+                ? 'Posicao correta'
+                : getAngleStatus() === 'incorreta'
+                  ? 'Posicao incorreta'
+                  : 'Aguardando...'}
             </Text>
           </View>
 
           <Text style={styles.interpretationText}>
-            {mockSensor.status === 'correta'
-              ? 'O punho esta alinhado com o angulo esperado para o exercicio.'
-              : 'Corrija a inclinacao do punho para evitar sobrecarga.'}
+            {getAngleStatus() === 'correta'
+              ? 'O punho esta alinhado corretamente com o angulo esperado para o exercicio.'
+              : getAngleStatus() === 'incorreta'
+                ? 'A inclinacao do punho esta fora do intervalo esperado. Corrija para evitar sobrecarga.'
+                : 'Aguardando dados do sensor MPU6050...'}
           </Text>
         </View>
 
@@ -192,13 +217,13 @@ export default function HomeScreen() {
           </View>
 
           <Text style={styles.interpretationText}>
-            {livePitch !== null && liveRoll !== null
-              ? `Pitch: ${livePitch.toFixed(2)}°, Roll: ${liveRoll.toFixed(2)}°`
+            {sensorData.pitch !== null && sensorData.roll !== null
+              ? `Pitch: ${sensorData.pitch.toFixed(2)}°, Roll: ${sensorData.roll.toFixed(2)}°`
               : 'Aguardando leitura do sensor...'}
           </Text>
         </View>
 
-        <Text style={styles.footerText}>Última leitura: 01/03/2026 20:58:44</Text>
+        <Text style={styles.footerText}>Última leitura: {formatSensorTime()}</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -369,6 +394,11 @@ const styles = StyleSheet.create({
     color: '#ff8da4',
     borderColor: '#7b2335',
     backgroundColor: '#3a0d1b',
+  },
+  statusPillMuted: {
+    color: '#9ab8b4',
+    borderColor: '#1e584f',
+    backgroundColor: '#072923',
   },
   interpretationText: {
     color: '#d7e9e4',

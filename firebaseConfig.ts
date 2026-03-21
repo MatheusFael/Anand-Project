@@ -7,6 +7,7 @@ const firebaseConfig = {
   apiKey: 'AIzaSyBWMNrCd4xhDKR1DtRQlH6NUQQpM1vKXUM',
   authDomain: 'anand-project-3de15.firebaseapp.com',
   projectId: 'anand-project-3de15',
+  databaseURL: 'https://anand-project-3de15-default-rtdb.firebaseio.com',
   storageBucket: 'anand-project-3de15.firebasestorage.app',
   messagingSenderId: '494636004016',
   appId: '1:494636004016:web:b1b10060590b5e9f7e4175',

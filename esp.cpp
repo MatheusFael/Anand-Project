@@ -1,200 +1,243 @@
-#include <Wire.h>
-#include <math.h>
-#include <Wifi.h>
-#include <FirebaseESP32.h>
+// #include <Wire.h>
+// #include <WiFi.h>
+// #if __has_include(<FirebaseESP32.h>)
+// #include <FirebaseESP32.h>
+// #define USE_LEGACY_FIREBASE 1
+// #elif __has_include(<Firebase_ESP_Client.h>)
+// #include <Firebase_ESP_Client.h>
+// #define USE_LEGACY_FIREBASE 0
+// #else
+// #error "Instale FirebaseESP32 ou Firebase_ESP_Client"
+// #endif
+// #include <math.h>
+// #include <time.h>
 
-#define MPU_ADDR 0x68
+// #define MPU_ADDR 0x68
 
-#define WIFI_SSID "RONALDO FILHO 2G"
-#define WIFI_PASSWORD "25117858"
+// #define WIFI_SSID "RONALDO FILHO 2G"
+// #define WIFI_PASSWORD "25117858"
 
-#define FIREBASE_HOST "anand-project-3de15-default-rtdb.firebaseio.com" // substitua se necessário
-#define FIREBASE_AUTH "" // deixar vazio em modo de teste; em produção use token de serviço
+// #define FIREBASE_HOST "anand-project-3de15-default-rtdb.firebaseio.com"
+// #define FIREBASE_AUTH ""
 
-#define SENSOR_PATH "/sensors/esp001"
+// #define SENSOR_PATH "/sensors/esp001"
 
-FirebaseData fbdo;
+// #define I2C_SDA 8
+// #define I2C_SCL 9
 
-bool checkWifi() {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("Conectando WiFi");
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    unsigned long startAttemptTime = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
-      delay(500);
-      Serial.print(".");
-    }
-    Serial.println();
-  }
-  return WiFi.status() == WL_CONNECTED;
-}
+// #define NTP_SERVER "pool.ntp.org"
+// #define GMT_OFFSET_SEC 0
+// #define DAYLIGHT_OFFSET_SEC 0
 
-void firebaseInit() {
-  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-  Firebase.reconnectWiFi(true);
-}
+// FirebaseData fbdo;
+// #if !USE_LEGACY_FIREBASE
+// FirebaseAuth fbAuth;
+// FirebaseConfig fbConfig;
+// #endif
 
-// ===== Ângulos =====
-float pitch = 0;
-float roll  = 0;
+// float pitch = 0;
+// float roll = 0;
+// float pitchAccFiltrado = 0;
+// float rollAccFiltrado = 0;
+// float pitchInicial = 0;
+// float rollInicial = 0;
 
-float pitchAccFiltrado = 0;
-float rollAccFiltrado  = 0;
+// unsigned long tempoAnterior = 0;
+// bool firebaseReady = false;
+// bool ntpSynced = false;
 
-// posição neutra
-float pitchInicial = 0; 
-float rollInicial  = 0;
+// bool checkWifi() {
+//   if (WiFi.status() != WL_CONNECTED) {
+//     Serial.print("Conectando WiFi");
+//     WiFi.mode(WIFI_STA);
+//     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-unsigned long tempoAnterior;
+//     unsigned long startAttemptTime = millis();
+//     while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 12000) {
+//       delay(500);
+//       Serial.print(".");
+//     }
+//     Serial.println();
+//   }
+//   return WiFi.status() == WL_CONNECTED;
+// }
 
-// ======================
-// LEITURA (SUBSTITUI A BIBLIOTECA)
-// ======================
-void lerMPU(float &ax, float &ay, float &az, float &gx, float &gy) {
+// void firebaseInit() {
+// #if USE_LEGACY_FIREBASE
+//   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+// #else
+//   fbConfig.database_url = "https://anand-project-3de15-default-rtdb.firebaseio.com";
+//   fbConfig.signer.tokens.legacy_token = FIREBASE_AUTH;
+//   Firebase.begin(&fbConfig, &fbAuth);
+// #endif
+//   Firebase.reconnectWiFi(true);
+//   Firebase.setReadTimeout(fbdo, 1000 * 15);
+//   Firebase.setwriteSizeLimit(fbdo, "tiny");
+//   firebaseReady = true;
+// }
 
-  Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x3B);
-  Wire.endTransmission(false);
-  Wire.requestFrom(MPU_ADDR, 14, true);
+// void syncClock() {
+//   configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+//   struct tm timeinfo;
 
-  int16_t axRaw = Wire.read() << 8 | Wire.read();
-  int16_t ayRaw = Wire.read() << 8 | Wire.read();
-  int16_t azRaw = Wire.read() << 8 | Wire.read();
+//   Serial.print("Sincronizando NTP");
+//   for (int i = 0; i < 20; i++) {
+//     if (getLocalTime(&timeinfo, 500)) {
+//       ntpSynced = true;
+//       Serial.println(" -> OK");
+//       return;
+//     }
+//     Serial.print(".");
+//     delay(300);
+//   }
+//   Serial.println(" -> falhou, usando millis() para updatedAt");
+// }
 
-  Wire.read(); Wire.read(); // temp
+// double nowMs() {
+//   if (ntpSynced) {
+//     time_t now = time(nullptr);
+//     if (now > 1700000000) {
+//       return (double)now * 1000.0;
+//     }
+//   }
+//   return (double)millis();
+// }
 
-  int16_t gxRaw = Wire.read() << 8 | Wire.read();
-  int16_t gyRaw = Wire.read() << 8 | Wire.read();
-  Wire.read(); Wire.read(); // gz
+// void lerMPU(float &ax, float &ay, float &az, float &gx, float &gy) {
+//   Wire.beginTransmission(MPU_ADDR);
+//   Wire.write(0x3B);
+//   Wire.endTransmission(false);
+//   Wire.requestFrom(MPU_ADDR, 14, true);
 
-  // conversão (igual à lib)
-  ax = axRaw / 16384.0;
-  ay = ayRaw / 16384.0;
-  az = azRaw / 16384.0;
+//   if (Wire.available() < 14) {
+//     ax = 0;
+//     ay = 0;
+//     az = 1;
+//     gx = 0;
+//     gy = 0;
+//     return;
+//   }
 
-  gx = gxRaw / 131.0;
-  gy = gyRaw / 131.0;
-}
+//   int16_t axRaw = Wire.read() << 8 | Wire.read();
+//   int16_t ayRaw = Wire.read() << 8 | Wire.read();
+//   int16_t azRaw = Wire.read() << 8 | Wire.read();
 
-// ======================
-// Calibração (MESMA LÓGICA)
-// ======================
-void calibrar() {
+//   Wire.read();
+//   Wire.read();
 
-  float somaPitch = 0;
-  float somaRoll  = 0;
+//   int16_t gxRaw = Wire.read() << 8 | Wire.read();
+//   int16_t gyRaw = Wire.read() << 8 | Wire.read();
+//   Wire.read();
+//   Wire.read();
 
-  for (int i = 0; i < 200; i++) {
+//   ax = axRaw / 16384.0;
+//   ay = ayRaw / 16384.0;
+//   az = azRaw / 16384.0;
+//   gx = gxRaw / 131.0;
+//   gy = gyRaw / 131.0;
+// }
 
-    float ax, ay, az, gx, gy;
-    lerMPU(ax, ay, az, gx, gy);
+// void calibrar() {
+//   float somaPitch = 0;
+//   float somaRoll = 0;
 
-    float p = atan2(ay, sqrt(ax*ax + az*az)) * 180 / PI;
-    float r = atan2(-ax, az) * 180 / PI;
+//   for (int i = 0; i < 200; i++) {
+//     float ax, ay, az, gx, gy;
+//     lerMPU(ax, ay, az, gx, gy);
 
-    somaPitch += p;
-    somaRoll  += r;
+//     float p = atan2(ay, sqrt(ax * ax + az * az)) * 180 / PI;
+//     float r = atan2(-ax, az) * 180 / PI;
 
-    delay(10);
-  }
+//     somaPitch += p;
+//     somaRoll += r;
+//     delay(10);
+//   }
 
-  // 🔴 CORREÇÃO IMPORTANTE
-  pitchInicial = somaPitch / 200;
-  rollInicial  = somaRoll  / 200;
-}
+//   pitchInicial = somaPitch / 200;
+//   rollInicial = somaRoll / 200;
+// }
 
-// ======================
-void setup() {
+// void setup() {
+//   Serial.begin(115200);
+//   delay(1200);
 
-  Serial.begin(115200);
-  delay(2000);
+//   Serial.println("INICIANDO...");
 
-  Serial.println("INICIANDO...");
+//   Wire.begin(I2C_SDA, I2C_SCL);
 
-  // 🔴 ESSENCIAL no ESP32-C3
-  Wire.begin(8, 9);
+//   Wire.beginTransmission(MPU_ADDR);
+//   Wire.write(0x6B);
+//   Wire.write(0);
+//   Wire.endTransmission();
 
-  // 🔴 ACORDAR MPU
-  Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x6B);
-  Wire.write(0);
-  Wire.endTransmission();
+//   Serial.println("MPU6050 OK");
 
-  Serial.println("MPU6050 OK");
+//   if (checkWifi()) {
+//     syncClock();
+//     firebaseInit();
+//     Serial.print("WiFi OK, IP: ");
+//     Serial.println(WiFi.localIP());
+//   } else {
+//     Serial.println("WiFi nao conectado no setup. Tentara novamente no loop.");
+//   }
 
-  delay(2000);
+//   Serial.println("Calibrando...");
+//   calibrar();
+//   Serial.println("Calibrado!");
 
-  Serial.println("Calibrando...");
-  calibrar();
-  Serial.println("Calibrado!");
+//   tempoAnterior = millis();
+//   Serial.println("PRONTO!");
+// }
 
-  tempoAnterior = millis();
+// void loop() {
+//   float ax, ay, az, gx, gy;
+//   lerMPU(ax, ay, az, gx, gy);
 
-  Serial.println("PRONTO!");
+//   unsigned long tempoAtual = millis();
+//   float dt = (tempoAtual - tempoAnterior) / 1000.0;
+//   tempoAnterior = tempoAtual;
 
-  if (checkWifi()) {
-    firebaseInit();
-  }
-}
+//   float pitchAcc = atan2(ay, sqrt(ax * ax + az * az)) * 180 / PI;
+//   float rollAcc = atan2(-ax, az) * 180 / PI;
 
-// ======================
-void loop() {
+//   pitchAccFiltrado = 0.9 * pitchAccFiltrado + 0.1 * pitchAcc;
+//   rollAccFiltrado = 0.9 * rollAccFiltrado + 0.1 * rollAcc;
 
-  float ax, ay, az, gx, gy;
-  lerMPU(ax, ay, az, gx, gy);
+//   float pitchGyro = pitch + gy * dt;
+//   float rollGyro = roll + gx * dt;
 
-  // tempo
-  unsigned long tempoAtual = millis();
-  float dt = (tempoAtual - tempoAnterior) / 1000.0;
-  tempoAnterior = tempoAtual;
+//   const float alpha = 0.96;
+//   pitch = alpha * pitchGyro + (1 - alpha) * pitchAccFiltrado;
+//   roll = alpha * rollGyro + (1 - alpha) * rollAccFiltrado;
 
-  // ===== Acelerômetro =====
-  float pitchAcc = atan2(ay, sqrt(ax*ax + az*az)) * 180 / PI;
-  float rollAcc  = atan2(-ax, az) * 180 / PI;
+//   float pitchRel = pitch - pitchInicial;
+//   float rollRel = roll - rollInicial;
 
-  pitchAccFiltrado = 0.9 * pitchAccFiltrado + 0.1 * pitchAcc;
-  rollAccFiltrado  = 0.9 * rollAccFiltrado  + 0.1 * rollAcc;
+//   Serial.print("Vertical: ");
+//   Serial.print(pitchRel, 2);
+//   Serial.print(" graus, Lateral: ");
+//   Serial.print(rollRel, 2);
+//   Serial.print(" graus");
 
-  // ===== Giroscópio =====
-  float pitchGyro = pitch + gy * dt;
-  float rollGyro  = roll  + gx * dt;
+//   if (checkWifi()) {
+//     if (!firebaseReady) {
+//       firebaseInit();
+//     }
 
-  // ===== Filtro complementar (SEU ORIGINAL)
-  const float alpha = 0.96;
+//     FirebaseJson json;
+//     json.set("pitch", pitchRel);
+//     json.set("roll", rollRel);
+//     json.set("updatedAt", nowMs());
 
-  pitch = alpha * pitchGyro + (1 - alpha) * pitchAccFiltrado;
-  roll  = alpha * rollGyro  + (1 - alpha) * rollAccFiltrado;
+//     if (Firebase.RTDB.setJSON(&fbdo, SENSOR_PATH, &json)) {
+//       Serial.println(" -> enviado ao Firebase");
+//     } else {
+//       Serial.print(" -> ERRO Firebase: ");
+//       Serial.println(fbdo.errorReason());
+//     }
+//   } else {
+//     Serial.println(" -> WiFi desconectado, pulando envio.");
+//   }
 
-  // ===== Relativo à posição neutra (SEU CONCEITO)
-  float pitchRel = pitch - pitchInicial;
-  float rollRel  = roll  - rollInicial;
-
-  // ===== Saída local UART (igual)
-  Serial.print("Vertical: ");
-  Serial.print(pitchRel);
-
-  Serial.print("°, Lateral: ");
-  Serial.print(rollRel);
-  Serial.print("°");
-
-  // ===== Enviar para Firebase Realtime Database
-  if (WiFi.status() == WL_CONNECTED) {
-    String path = String(SENSOR_PATH);
-
-    FirebaseJson json;
-    json.set("pitch", pitchRel);
-    json.set("roll", rollRel);
-    json.set("updatedAt", millis());
-
-    if (Firebase.RTDB.setJSON(&fbdo, path.c_str(), &json)) {
-      Serial.println(" -> enviado ao Firebase");
-    } else {
-      Serial.print("ERRO Firebase: ");
-      Serial.println(fbdo.errorReason());
-    }
-  } else {
-    Serial.println("WiFi desconectado, pulando envio.");
-  }
-
-  delay(500); // taxa de 2Hz (ajuste se necessário)
-}
+//   delay(500);
+// }

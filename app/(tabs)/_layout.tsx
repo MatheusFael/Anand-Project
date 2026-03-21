@@ -1,44 +1,14 @@
-import { Tabs, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import { Tabs } from 'expo-router';
+import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { useAuth } from '@/contexts/auth-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
-  const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'dark'];
-  const { firebaseUser, profile, viewedPatient, loading } = useAuth();
-
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-
-    if (!firebaseUser || !profile) {
-      router.replace('/login');
-      return;
-    }
-
-    if (profile.type === 'profissional' && !viewedPatient) {
-      router.replace('/profissional');
-    }
-  }, [firebaseUser, profile, viewedPatient, router, loading]);
-
-  if (loading) {
-    return null;
-  }
-
-  if (!firebaseUser || !profile) {
-    return null;
-  }
-
-  if ((profile.type === 'profissional' || profile.type === 'paciente') && !viewedPatient) {
-    return null;
-  }
 
   return (
     <Tabs
