@@ -119,7 +119,7 @@ export default function HomeScreen() {
         <View style={styles.headerSection}>
           <View>
             <Text style={styles.title}>{headerTitle}</Text>
-            <Text style={styles.subtitle}>Dados em tempo real do MPU6050</Text>
+            <Text style={styles.subtitle}>Dados em tempo real da Esp</Text>
           </View>
 
           <View style={styles.headerActions}>
@@ -189,15 +189,7 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {isProfessional ? (
-          <TouchableOpacity
-            style={styles.sendMessageButton}
-            onPress={() => router.push('/enviar-mensagem')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.sendMessageButtonText}>Enviar mensagem ao paciente</Text>
-          </TouchableOpacity>
-        ) : null}
+        
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -205,6 +197,8 @@ export default function HomeScreen() {
               {isProfessional ? 'Mensagem atual para o paciente' : 'Mensagem do profissional'}
             </Text>
           </View>
+
+          
 
           <Text style={styles.interpretationText}>
             {liveMessage?.trim().length
@@ -215,17 +209,17 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Leitura de sensor (ESP)</Text>
-          </View>
+        {isProfessional ? (
+          <TouchableOpacity
+            style={styles.sendMessageButton}
+            onPress={() => router.push('/enviar-mensagem')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.sendMessageButtonText}>Enviar mensagem ao paciente</Text>
+          </TouchableOpacity>
+        ) : null}
 
-          <Text style={styles.interpretationText}>
-            {sensorData.pitch !== null && sensorData.roll !== null
-              ? `Pitch: ${sensorData.pitch.toFixed(2)}°, Roll: ${sensorData.roll.toFixed(2)}°`
-              : 'Aguardando leitura do sensor...'}
-          </Text>
-        </View>
+       
 
         <Text style={styles.footerText}>Última leitura: {formatSensorTime()}</Text>
       </ScrollView>
